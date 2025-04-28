@@ -1,0 +1,56 @@
+name: Deploy GitHub Pages
+
+on:
+  workflow_dispatch: # allow manual trigger
+  push:
+    tags: ['v*'] # otherwise rebuild when releasing a new version
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # https://github.com/dtolnay/rust-toolchain
+    - name: Setup Rust with WebAssembly target
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: stable
+        targets: wasm32-unknown-unknown
+
+    # https://crates.io/crates/cargo-binstall/1.12.3#user-content-in-github-actions
+    - name: Install cargo-binstall
+      uses: cargo-bins/cargo-binstall@main
+
+    # https://trunkrs.dev/guide/getting-started/installation.html#using-cargo-binstall
+    - name: Install the Trunk CLI (using binstall)
+      run: cargo binstall trunk
+
+    - name: Release Build (using Trunk)
+      run: trunk build --release
+
+    # https://github.com/actions/upload-pages-artifact
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: dist
+
+  deploy:
+    name: Deploy
+    permissions:
+      contents: read
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: windows-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
