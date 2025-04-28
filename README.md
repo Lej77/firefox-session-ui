@@ -4,6 +4,17 @@ A desktop application for inspecting session storage data from Firefox.
 
 ## Usage
 
+You can build the app from source or you can try the web version at <https://lej77.github.io/firefox-session-ui/>. To use the app you need to browse and select a Firefox sessionstore file usually stored inside your Firefox profile directory and named `sessionstore.jsonlz4` or `sessionstore-backups/recovery.jsonlz4`  (when the browser is running).
+
+Useful links about Firefox's sessionstore file:
+
+- [How do I backup a session (all the open tabs) so that it can be reloaded after a computer factory reset? | Firefox Support Forum | Mozilla Support](https://support.mozilla.org/en-US/questions/1257866)
+- [Back up and restore information in Firefox profiles | Firefox Help](https://support.mozilla.org/en-US/kb/back-and-restore-information-firefox-profiles)
+- [How to restore a browsing session from backup | Firefox Help](https://support.mozilla.org/en-US/kb/how-restore-browsing-session-backup)
+- [Sessionstore.js - MozillaZine Knowledge Base](https://kb.mozillazine.org/index.php?title=Sessionstore.js&redirect=no)
+
+## Build from source
+
 ### Faster installation of CLI tools
 
 Use [`cargo-binstall`](https://crates.io/crates/cargo-binstall) instead of `cargo install` to not have to build from source. (It has quick install alternatives for itself as well.)
