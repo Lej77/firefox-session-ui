@@ -1,0 +1,23 @@
+{
+    "cSpell.words": [
+        "APPDATA",
+        "arboard",
+        "baklz",
+        "binstall",
+        "dioxus",
+        "fieldset",
+        "onchange",
+        "onclick",
+        "onclose",
+        "oninput",
+        "onkeydown",
+        "Sidebery",
+        "stylesheet",
+        "tauri",
+        "USERPROFILE"
+    ],
+    "rust-analyzer.linkedProjects": [
+        ".\\Cargo.toml",
+        ".\\src-tauri\\Cargo.toml"
+    ]
+}

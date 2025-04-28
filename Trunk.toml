@@ -1,0 +1,22 @@
+[build]
+# The index HTML file to drive the bundling process.
+target = "./trunk.html"
+# The output dir for all final assets.
+dist = "dist"
+
+[watch]
+ignore = ["./src-tauri/", "./Dioxus.toml", "./todo.md"]
+
+[serve]
+address = "127.0.0.1"
+port = 8080
+open = false
+
+[tools]
+# Default wasm-bindgen version to download.
+# This is the "wasm-bindgen-cli" crate: https://crates.io/crates/wasm-bindgen-cli
+wasm_bindgen = "0.2.100"
+
+# Default wasm-opt version to download.
+# Find latest at: https://github.com/WebAssembly/binaryen/releases
+wasm_opt = "version_123"

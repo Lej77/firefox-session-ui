@@ -1,0 +1,221 @@
+/* Stretch main view over whole window: */
+html {
+    width: 100%;
+    height: 100%;
+}
+
+html,
+body,
+#main,
+main {
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    flex: 1 1 auto;
+
+    margin: 0;
+}
+
+/* Utilities: */
+.contains-columns {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+}
+
+.contains-rows {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.vertically-centered-text {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+/* Main contains two columns: */
+main {
+    margin: 10px;
+}
+
+/* First column is a list of windows: */
+#window-select {
+    align-self: stretch;
+    overflow: auto;
+
+    width: 200px;
+    margin-right: 10px;
+}
+
+/* Second column contains the rest: */
+
+
+.file-input {
+    text-align: center;
+    margin: 8px;
+}
+
+.file-input>* {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.file-input>input[type="text"] {
+    flex: 1 1 auto;
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+
+/* Space between output formats */
+.output-format-group.output-format-radio-buttons .spacer {
+    width: 8px;
+}
+
+@media (width <=1250px) {
+
+    /* Only show radio buttons if lots of space; otherwise only show the drop down menu: */
+    .output-format-radio-buttons {
+        display: none;
+    }
+}
+
+/* Wizard dialog: */
+#find-session-data-wizard select {
+    min-height: 200px;
+}
+
+/* General styles: */
+
+::backdrop {
+    position: fixed;
+    inset: 0px;
+    width: 100vw;
+    height: 100vh;
+    top: 0;
+    left: 0;
+}
+
+.row {
+    display: flex;
+    justify-content: center;
+}
+
+a {
+    font-weight: 500;
+    color: #646cff;
+    text-decoration: inherit;
+}
+
+a:hover {
+    color: #535bf2;
+}
+
+h1 {
+    text-align: center;
+}
+
+input,
+.custom-button,
+button {
+    border-radius: 8px;
+    border: 1px solid transparent;
+    padding: 0.6em 1.2em;
+    font-size: 1em;
+    font-weight: 500;
+    font-family: inherit;
+    color: #0f0f0f;
+    background-color: #ffffff;
+    transition: border-color 0.25s;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+}
+
+.custom-button[disabled=true],
+button[disabled=true] {
+    color: #0f0f0f;
+    background-color: hsl(0, 0%, 65%);
+}
+
+.custom-button:not([disabled]),
+button:not([disabled]) {
+    cursor: pointer;
+}
+
+input:focus,
+.custom-button:focus,
+button:focus {
+    border-color: hsla(221, 67%, 54%, 0.4);
+}
+
+.custom-button:not([disabled]):hover,
+button:not([disabled]):hover {
+    border-color: #396cd8;
+}
+
+.custom-button:not([disabled]):active,
+button:not([disabled]):active {
+    border-color: #396cd8;
+    background-color: #e8e8e8;
+}
+
+input,
+.custom-button,
+button {
+    outline: none;
+}
+
+:root {
+    font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 400;
+
+    color: #0f0f0f;
+    background-color: #f6f6f6;
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        color: #f6f6f6;
+        background-color: #2f2f2f;
+
+        /* Dark scrollbars */
+        /* https://stackoverflow.com/questions/65940522/how-do-i-switch-to-chromes-dark-scrollbar-like-github-does */
+        color-scheme: dark;
+    }
+
+    ::backdrop {
+        background: rgba(0, 0, 0, 0.3);
+    }
+    a:hover {
+        color: #24c8db;
+    }
+
+    input,
+    .custom-button,
+    button,
+    textarea {
+        color: #ffffff;
+        background-color: #0f0f0f98;
+    }
+
+    .custom-button[disabled=true],
+    button[disabled=true] {
+        color: hsl(0, 0%, 65%);
+        background-color: #0f0f0f98;
+    }
+
+    .custom-button:not([disabled]):active,
+    button:not([disabled]):active {
+        background-color: #0f0f0f69;
+    }
+}

@@ -1,0 +1,52 @@
+{
+  "build": {
+    // Dioxus's cli "dx" allows for hot reload and uses dioxus asset system
+    // Trunk integrates wasm-opt for smaller WebAssembly files
+    "beforeDevCommand": "dx serve      --features tauri --no-default-features --platform web --port=8080",
+    // "beforeDevCommand": "trunk serve   --features tauri",
+
+    // "beforeBuildCommand": "dx build    --features tauri --platform web --release",
+    "beforeBuildCommand": "trunk build --features tauri --no-default-features --release",
+
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:8080"
+  },
+  "bundle": {
+    "active": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      }
+    },
+    "targets": "all",
+    "category": "Utility",
+    "shortDescription": "Inspect information inside Firefox's session data"
+  },
+  "productName": "Firefox Session Data Utility",
+  "mainBinaryName": "Firefox Session Data Utility",
+  "version": "0.1.0",
+  "identifier": "com.lej77.firefox-session-data-utility",
+  "plugins": {},
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "fullscreen": false,
+        "resizable": true,
+        "title": "Firefox Session Data Utility",
+        "width": 1200,
+        "height": 700
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  }
+}
