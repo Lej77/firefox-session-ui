@@ -4,7 +4,7 @@ A desktop application for inspecting session storage data from Firefox.
 
 ## Usage
 
-You can build the app from source or you can try the web version at <https://lej77.github.io/firefox-session-ui/>. To use the app you need to browse and select a Firefox sessionstore file usually stored inside your Firefox profile directory and named `sessionstore.jsonlz4` or `sessionstore-backups/recovery.jsonlz4`  (when the browser is running).
+You can build the app from source or you can try the web version at <https://lej77.github.io/firefox-session-ui/>. To use the app you need to browse and select a Firefox sessionstore file usually stored inside your Firefox profile directory and named `sessionstore.jsonlz4` (when the browser has exited gracefully) or `sessionstore-backups/recovery.jsonlz4`  (when the browser is running).
 
 Useful links about Firefox's sessionstore file:
 
