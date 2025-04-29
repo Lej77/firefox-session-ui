@@ -1,12 +1,16 @@
 # Firefox session UI
 
-A desktop application for inspecting session storage data from Firefox. 
+A desktop application for inspecting session storage data from Firefox.
 
 Note that this program simply makes use of the code exposed by the CLI tool at <https://github.com/Lej77/firefox_session_data>.
 
 ## Usage
 
-You can build the app from source or you can try the web version at <https://lej77.github.io/firefox-session-ui/>. To use the app you need to browse and select a Firefox sessionstore file usually stored inside your Firefox profile directory and named `sessionstore.jsonlz4` (when the browser has exited gracefully) or `sessionstore-backups/recovery.jsonlz4`  (when the browser is running).
+The desktop application can be downloaded from the assets in [latest GitHub release](https://github.com/Lej77/firefox-session-ui/releases).
+
+You can also try the web version at <https://lej77.github.io/firefox-session-ui/>.
+
+To use the app you need to browse and select a Firefox sessionstore file usually stored inside your Firefox profile directory and named `sessionstore.jsonlz4` (when Firefox has exited gracefully) or `sessionstore-backups/recovery.jsonlz4`  (when Firefox is still running). The desktop application has a helpful "Wizard" button that helps with finding the sessionstore file.
 
 Useful links about Firefox's sessionstore file:
 
