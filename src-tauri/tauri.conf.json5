@@ -6,7 +6,7 @@
     // "beforeDevCommand": "trunk serve   --features tauri",
 
     // "beforeBuildCommand": "dx build    --features tauri --platform web --release",
-    "beforeBuildCommand": "trunk build --features tauri --no-default-features --release",
+    "beforeBuildCommand": "trunk build --features tauri,trunk --no-default-features --release",
 
     "frontendDist": "../dist",
     "devUrl": "http://localhost:8080"

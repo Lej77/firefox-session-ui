@@ -8,6 +8,7 @@
     "dist": "dist"
     # How to prefix paths to assets: https://trunkrs.dev/guide/advanced/paths.html
     public_url: ./
+    features: "trunk"
 
 "watch":
     "ignore": ["./src-tauri/", "./Dioxus.toml", "./todo.md"]
