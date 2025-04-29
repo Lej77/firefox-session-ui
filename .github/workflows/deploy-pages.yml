@@ -33,20 +33,20 @@ jobs:
     - name: Release Build (using Trunk)
       run: trunk build --release
 
-    - name: Move files into subfolder
-      # https://stackoverflow.com/questions/59954185/github-actions-split-long-command-into-multiple-lines
-      run: |
-        mkdir github-page
-        mv dist github-page/app
+    #- name: Move files into subfolder
+    #  # https://stackoverflow.com/questions/59954185/github-actions-split-long-command-into-multiple-lines
+    #  run: |
+    #    mkdir github-page
+    #    mv dist github-page/app
 
-    - name: Add redirect
-      run: echo '<meta http-equiv="refresh" content="0;url=app/index.html">' > github-page/index.html
+    #- name: Add redirect
+    #  run: echo '<meta http-equiv="refresh" content="0;url=app/index.html">' > github-page/index.html
 
     # https://github.com/actions/upload-pages-artifact
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: github-page/
+        path: dist/
 
   # https://github.com/actions/deploy-pages
   deploy:
