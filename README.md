@@ -1,6 +1,8 @@
 # Firefox session UI
 
-A desktop application for inspecting session storage data from Firefox. This makes use of the code exposed by the CLI tool at <https://github.com/Lej77/firefox_session_data>.
+A desktop application for inspecting session storage data from Firefox. 
+
+Note that this program simply makes use of the code exposed by the CLI tool at <https://github.com/Lej77/firefox_session_data>.
 
 ## Usage
 
