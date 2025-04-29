@@ -46,8 +46,14 @@ jobs:
         uses: cargo-bins/cargo-binstall@main
   
       # https://trunkrs.dev/guide/getting-started/installation.html#using-cargo-binstall
-      - name: Install the Trunk CLI (using binstall)
+      - name: Install Trunk CLI (using binstall)
+        if: matrix.platform != 'macos-latest'
         run: cargo binstall trunk
+
+      # https://trunkrs.dev/guide/getting-started/installation.html#brew
+      - name: Install Trunk CLI (using brew for mac)
+        if: matrix.platform == 'macos-latest'
+        run: brew install trunk
 
       - name: install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
