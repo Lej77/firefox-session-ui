@@ -7,3 +7,9 @@
 
 # Used by cargo-run-bin
 .bin/
+
+# Local notes
+todo.md
+
+# Generated Trunk JSON Schema
+.Trunk.schema.json

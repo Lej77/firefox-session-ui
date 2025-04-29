@@ -5,10 +5,6 @@
 # App (Project) Name
 name = "firefox-session-ui"
 
-# Dioxus App Default Platform
-# desktop, web, mobile, ssr
-default_platform = "web"
-
 # `build` & `serve` dist path
 out_dir = "dist"
 
@@ -19,6 +15,8 @@ asset_dir = "public"
 
 # HTML title tag content
 title = "Firefox Session Data Utility"
+
+base_path = "firefox-session-ui"
 
 [web.watcher]
 
