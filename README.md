@@ -6,7 +6,7 @@ Note that this program simply makes use of the code exposed by the CLI tool at <
 
 ## Usage
 
-The desktop application can be downloaded from the assets in [latest GitHub release](https://github.com/Lej77/firefox-session-ui/releases).
+The desktop application can be downloaded from the assets in the [latest GitHub release](https://github.com/Lej77/firefox-session-ui/releases).
 
 You can also try the web version at <https://lej77.github.io/firefox-session-ui/>.
 
