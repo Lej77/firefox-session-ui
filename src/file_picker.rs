@@ -43,16 +43,15 @@ pub fn OpenFilePicker(props: OpenFilePickerProps) -> Element {
                     r#type: "file",
                     style: "display: none",
                     oninput: move |e| {
-                        let Some(files) = e.files() else { return; };
-                        let mut file_names = (*files).files();
-                        if file_names.len() != 1 {
-                            log::warn!("Expected a single file but found: {}", file_names.len());
+                        let mut files = e.files();
+                        if files.len() != 1 {
+                            log::warn!("Expected a single file but found: {}", files.len());
                         }
-                        let name = file_names.remove(0);
+                        let file = files.remove(0);
                         spawn(async move {
                             let id = Commands.set_open_path(crate::ui_state(), FileSlot::New, e.value()).await;
-                            if let Some(data) = files.read_file(name.as_str()).await {
-                                if let Err(e) = Commands.set_data(crate::ui_state(), id, data).await {
+                            if let Ok(data) =  file.read_bytes().await {
+                                if let Err(e) = Commands.set_data(crate::ui_state(), id, Vec::<u8>::from(data)).await {
                                     log::error!("Failed to set data for file: {e}");
                                 }
                             }

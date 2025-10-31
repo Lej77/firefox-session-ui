@@ -153,10 +153,10 @@ impl<M: 'static> Copy for ElmChannel<M> {}
 ///
 /// [`The Elm Architecture`]:
 ///     https://en.wikipedia.org/wiki/Elm_(programming_language)#The_Elm_Architecture
-pub fn use_elm<S, M>(
+pub fn use_elm<S: 'static, M>(
     init_state: impl FnOnce(ElmChannel<M>) -> S,
     mut update: impl FnMut(&mut S, M, ElmChannel<M>),
-) -> (ReadOnlySignal<S>, ElmChannel<M>)
+) -> (ReadSignal<S>, ElmChannel<M>)
 where
     M: Debug,
 {
@@ -221,10 +221,8 @@ fn main() {
 
     #[cfg(not(target_family = "wasm"))]
     {
-        use dioxus_desktop::{Config, WindowBuilder};
-
         fn start_app() -> Element {
-            dioxus::dioxus_core::prelude::use_drop(|| {
+            dioxus::dioxus_core::use_drop(|| {
                 eprintln!("Window closing");
                 if let Ok(mut guard) = CLIPBOARD.lock() {
                     *guard = None; // drop the clipboard
@@ -245,6 +243,8 @@ fn main() {
         }
         #[cfg(not(feature = "blitz"))]
         {
+            use dioxus_desktop::{Config, WindowBuilder};
+
             dioxus_desktop::launch::launch(
                 start_app,
                 Vec::new(),
@@ -358,12 +358,17 @@ fn WindowSelect(props: WindowSelectProps) -> Element {
                 log::debug!("multi select event: {evt:?}");
                 let (values_wasm, values_desktop);
                 let values = if cfg!(target_family = "wasm") {
-                    values_wasm = evt.values();
-                    let slice = values_wasm
-                        .get("options")
-                        .map(|v| v.as_slice())
-                        .unwrap_or_default();
-                    slice.iter().map(String::as_str).collect::<Vec<&str>>()
+                    values_wasm = evt.get("options");
+                    values_wasm
+                        .iter()
+                        .filter_map(|form_value| {
+                            if let FormValue::Text(text) = form_value {
+                                Some(text.as_str())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect::<Vec<&str>>()
                 } else {
                     values_desktop = evt.value();
                     values_desktop.split(',').collect::<Vec<&str>>()

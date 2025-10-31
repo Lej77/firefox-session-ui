@@ -7,6 +7,15 @@ license = "MIT OR Apache-2.0" # Some optional features of the firefox-session-da
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+# Easy access to cli tools required when developing:
+# https://github.com/dustinblackman/cargo-run-bin
+[package.metadata.bin]
+# cargo-binstall = { version = "1.10.17" }
+tauri-cli = { version = "2.0.4" }
+dioxus-cli = { version = "0.6.0" }
+trunk = { version = "0.21.5" }
+
+
 [features]
 default = ["dioxus-desktop", "wasm-standalone"]
 
@@ -30,20 +39,32 @@ html_to_pdf_all = ["host_commands/html_to_pdf_all"]
 
 
 [dependencies]
-dioxus = "0.6.0"
+dioxus = "0.7.0"
 log = "0.4.6"
 tokio = "1.27.0"
 host_commands = { path = "src-tauri/host_commands" }
 
 # Dioxus Desktop App:
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-dioxus-desktop = "0.6.0"
+dioxus-desktop = "0.7.0"
 arboard = "3.4.0" # Clipboard access
 resource = "0.5.0" # Fast reload of style in debug mode
-dioxus-native = { git = "https://github.com/DioxusLabs/blitz.git", rev = "0e53be5b363fd7227203a41933b78fdc0cd0534a", optional = true, features = ["net"] }
+dioxus-native = {version = "0.7.0", optional = true, features = ["net"] } # The native Blitz HTML renderer
+
+# Tauri frontend OR WebAssembly website:
+[target.'cfg(target_family = "wasm")'.dependencies]
+dioxus-web = "0.7.0"
+# WebAssembly Debug
+wasm-logger = "0.2.0"
+console_error_panic_hook = "0.1.7"
+web-sys = { version = "0.3", features = ["HtmlCollection", "HtmlSelectElement", "HtmlOptionElement", "Url", "Blob", "HtmlAnchorElement"] }
+js-sys = "0.3"
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
 
 [build-dependencies]
 winresource = "0.1.19" # Windows icon for Dioxus Desktop App
+
 
 [profile]
 
@@ -56,23 +77,3 @@ inherits = "dev"
 
 [profile.android-dev]
 inherits = "dev"
-
-# Tauri frontend OR WebAssembly website:
-[target.'cfg(target_family = "wasm")'.dependencies]
-dioxus-web = "0.6.0"
-# WebAssembly Debug
-wasm-logger = "0.2.0"
-console_error_panic_hook = "0.1.7"
-web-sys = { version = "0.3", features = ["HtmlCollection", "HtmlSelectElement", "HtmlOptionElement", "Url", "Blob", "HtmlAnchorElement"] }
-js-sys = "0.3"
-wasm-bindgen = "0.2"
-wasm-bindgen-futures = "0.4"
-
-
-# Easy access to cli tools required when developing:
-# https://github.com/dustinblackman/cargo-run-bin
-[package.metadata.bin]
-# cargo-binstall = { version = "1.10.17" }
-tauri-cli = { version = "2.0.4" }
-dioxus-cli = { version = "0.6.0" }
-trunk = { version = "0.21.5" }
