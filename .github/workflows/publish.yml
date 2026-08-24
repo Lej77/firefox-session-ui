@@ -122,9 +122,9 @@ jobs:
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
           manifest-path: flatpak/flatpak-builder.yaml
-          bundle: firefox-session-data-utility-${{ matrix.arch }}.flatpak
+          bundle: firefox-session-data-utility.flatpak
           arch: ${{ matrix.arch }}
-          artifact-name: flatpak-artifact-${{ matrix.arch }}
+          upload-artifact: true
           cache-key: flatpak-builder-${{ github.sha }}
 
   # --------------------------------------------------------------------------
@@ -139,12 +139,15 @@ jobs:
       - name: Download All Flatpak Artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: flatpak-artifact-*
+          pattern: firefox-session-data-utility*
+          path: ./flatpak-dist
           merge-multiple: true
 
       - name: Upload Flatpaks to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: "*.flatpak"
+          files: |
+            flatpak-dist/*.flatpak
+            flatpak-dist/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
