@@ -112,7 +112,7 @@ jobs:
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
           manifest-path: flatpak/flatpak-builder.yaml
-          bundle: firefox-session-data-utility.flatpak
+          bundle: firefox-session-data-utility-${{ matrix.variant.arch }}.flatpak
           arch: ${{ matrix.variant.arch }}
           upload-artifact: true
           cache-key: flatpak-builder-${{ github.sha }}
@@ -136,6 +136,7 @@ jobs:
       - name: Upload Flatpaks to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }} # Targets the exact tag pushed (e.g. v1.0.0)
           files: |
             flatpak-dist/*.flatpak
             flatpak-dist/*.zip
