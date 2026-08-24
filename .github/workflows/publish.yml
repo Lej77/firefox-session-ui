@@ -79,35 +79,55 @@ jobs:
   # Build Flatpak Package (Runs in parallel with publish-tauri)
   # --------------------------------------------------------------------------
   build-flatpak:
-    runs-on: ubuntu-22.04
+    name: "Flatpak (${{ matrix.arch }})"
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64]
+
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
+      options: --privileged
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Install Flatpak dependencies
+      - name: Install Docker CLI for QEMU Setup
+        if: ${{ matrix.arch != 'x86_64' }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder pipx appstream
+          curl https://download.docker.com/linux/static/stable/x86_64/docker-26.0.0.tgz --output ./docker.tgz
+          tar xzvf docker.tgz
+          mv docker/* /usr/bin
 
-          # Install flatpak-cargo-generator via pipx
+      - name: Set up QEMU
+        if: ${{ matrix.arch != 'x86_64' }}
+        id: qemu
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Install flatpak-cargo-generator
+        run: |
+          apt-get update && apt-get install -y pipx jq curl tar
           pipx install flatpak-cargo-generator
-
-          # Ensure pipx binaries are available in PATH for subsequent commands
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-          flatpak install -y org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop.Sdk.Extension.rust-stable//25.08
-
-      - name: Build Flatpak
+      - name: Generate Cargo Sources
         run: |
-          chmod +x ./flatpak/build-flatpak.sh
-          ./flatpak/build-flatpak.sh
+          chmod +x ./flatpak/generate-sources.sh
+          ./flatpak/generate-sources.sh
 
-      - name: Upload Flatpak Artifact
-        uses: actions/upload-artifact@v4
+      - name: Build Flatpak Bundle
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          name: flatpak-artifact
-          path: ./flatpak/firefox-session-data-utility.flatpak
-          if-no-files-found: error
+          manifest-path: flatpak/flatpak-builder.yaml
+          bundle: firefox-session-data-utility-${{ matrix.arch }}.flatpak
+          arch: ${{ matrix.arch }}
+          artifact-name: flatpak-artifact-${{ matrix.arch }}
+          cache-key: flatpak-builder-${{ github.sha }}
 
   # --------------------------------------------------------------------------
   # Download Flatpak Artifact & Attach to GitHub Release
@@ -118,14 +138,15 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download Flatpak Artifact
+      - name: Download All Flatpak Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: flatpak-artifact
+          pattern: flatpak-artifact-*
+          merge-multiple: true
 
-      - name: Upload Flatpak to GitHub Release
+      - name: Upload Flatpaks to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: firefox-session-data-utility.flatpak
+          files: "*.flatpak"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
