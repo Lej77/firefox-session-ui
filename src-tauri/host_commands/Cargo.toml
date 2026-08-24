@@ -70,3 +70,8 @@ tauri-plugin-dialog = { version = "2", optional = true }
 # Dioxus Native:
 dioxus-desktop = { version = "0.7.0", optional = true }
 rfd = { version = "0.17.0", optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Web browser has broken OS dark theme detection on Linux
+dark-light = "3"
+futures-util = "0.3"

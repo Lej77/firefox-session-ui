@@ -223,6 +223,15 @@ pub struct FoundSessionFile {
     pub file_path: String,
 }
 
+#[TauriSerialize]
+#[TauriDeserialize]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ThemeMode {
+    Dark,
+    Light,
+    Unspecified,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct WasmClient;
 
@@ -230,6 +239,10 @@ pub struct WasmClient;
 #[cfg_attr(target_family = "wasm", async_trait(?Send))]
 #[cfg_attr(not(target_family = "wasm"), async_trait)]
 pub trait StatelessCommands {
+    /// Waits for the OS theme to change to a state different from `current_theme`
+    /// and returns the newly detected theme.
+    async fn wait_for_theme_change(&self, current_theme: ThemeMode) -> Result<ThemeMode, String>;
+
     /// Get descriptions for all output formats.
     async fn format_descriptions(&self) -> Vec<(OutputFormat, String)>;
 

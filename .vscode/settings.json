@@ -17,7 +17,6 @@
         "USERPROFILE"
     ],
     "rust-analyzer.linkedProjects": [
-        ".\\Cargo.toml",
-        ".\\src-tauri\\Cargo.toml"
+        "./Cargo.toml",
     ]
 }

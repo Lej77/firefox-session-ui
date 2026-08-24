@@ -11,7 +11,7 @@
     features: "trunk"
 
 "watch":
-    "ignore": ["./src-tauri/", "./Dioxus.toml", "./todo.md"]
+    "ignore": ["src-tauri/", "Dioxus.toml"]
 
 "serve":
     "addresses": ["127.0.0.1"]

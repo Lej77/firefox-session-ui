@@ -2,8 +2,8 @@
   "build": {
     // Dioxus's cli "dx" allows for hot reload and uses dioxus asset system
     // Trunk integrates wasm-opt for smaller WebAssembly files
-    "beforeDevCommand": "dx serve      --features tauri --no-default-features --platform web --port=8080",
-    // "beforeDevCommand": "trunk serve   --features tauri",
+    // "beforeDevCommand": "dx serve      --features tauri --no-default-features --platform web --port=8080",
+    "beforeDevCommand": "trunk serve   --features tauri,trunk --no-default-features ",
 
     // "beforeBuildCommand": "dx build    --features tauri --platform web --release",
     "beforeBuildCommand": "trunk build --features tauri,trunk --no-default-features --release",

@@ -127,6 +127,7 @@ mod commands {
     )]
     #[async_trait]
     impl StatelessCommands for TauriCommands {
+        async fn wait_for_theme_change(&self, current_theme: ThemeMode) -> Result<ThemeMode, String> {}
         async fn format_descriptions(&self) -> Vec<(OutputFormat, String)> {}
         async fn find_chromium_profiles(&self) -> Result<Vec<FirefoxProfileInfo>, String> {}
         async fn find_firefox_profiles(&self) -> Result<Vec<FirefoxProfileInfo>, String> {}

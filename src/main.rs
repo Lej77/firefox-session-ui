@@ -9,7 +9,7 @@ use dioxus::prelude::*;
 use file_picker::{OpenFilePicker, SaveFilePicker};
 use host_commands::{
     DataId, FileManagementCommands, FileSlot, FileStatus, FirefoxProfileInfo, GenerateOptions,
-    OutputFormat, OutputOptions, PathId, StatelessCommands,
+    OutputFormat, OutputOptions, PathId, StatelessCommands, ThemeMode,
 };
 #[cfg(target_family = "wasm")]
 use wasm_bindgen::prelude::*;
@@ -249,6 +249,7 @@ fn main() {
                 start_app,
                 Vec::new(),
                 vec![Box::new(Config::new().with_window({
+                    #[cfg_attr(not(windows), expect(unused_mut))]
                     let mut builder =
                         WindowBuilder::new().with_title("Firefox Session Data Utility");
                     #[cfg(windows)]
@@ -467,8 +468,8 @@ fn InputPanel(props: InputPanelProps) -> Element {
                 id: "file-path-to-load",
                 r#type: "text",
                 // Can't read file from arbitrary location inside a web page:
-                readonly: Some(true).filter(|_| !host_commands::has_host_access()),
-                disabled: Some(true).filter(|_| !host_commands::has_host_access()),
+                readonly: (!host_commands::has_host_access()).then_some(true),
+                disabled: (!host_commands::has_host_access()).then_some(true),
                 value: "{input_path}",
                 oninput: move |evt| {
                     let new_path = evt.value();
@@ -764,6 +765,7 @@ pub enum Message {
     FetchedOutputFormatInfo(Vec<(OutputFormat, String)>),
     CopyLinksToClipboard,
     WriteLinksToFile,
+    SetTheme(ThemeMode),
 }
 
 #[derive(Debug)]
@@ -783,6 +785,7 @@ pub struct State {
     format_info: Vec<(OutputFormat, String)>,
     wizard: bool,
     wizard_profiles: Vec<FirefoxProfileInfo>,
+    theme_mode: ThemeMode,
 }
 impl State {
     pub fn init(mut sender: ElmChannel<Message>) -> Self {
@@ -849,6 +852,7 @@ impl State {
                 .collect(),
             wizard: false,
             wizard_profiles: Vec::new(),
+            theme_mode: ThemeMode::Unspecified,
         }
     }
     fn generate_preview(&self, mut sender: ElmChannel<Message>) -> impl Future<Output = ()> {
@@ -960,8 +964,7 @@ impl State {
                     ui_state(),
                     id,
                     GenerateOptions {
-                        open_group_indexes: Some(selected_open_window_groups)
-                            .filter(|_| has_any_filter),
+                        open_group_indexes: has_any_filter.then_some(selected_open_window_groups),
                         closed_group_indexes: Some(selected_closed_window_groups),
                         ..Default::default()
                     },
@@ -1155,8 +1158,7 @@ impl State {
                             ui_state(),
                             current.data_id,
                             GenerateOptions {
-                                open_group_indexes: Some(open_group_indexes)
-                                    .filter(|_| has_any_filter),
+                                open_group_indexes: has_any_filter.then_some(open_group_indexes),
                                 closed_group_indexes: Some(closed_group_indexes),
                                 ..Default::default()
                             },
@@ -1177,6 +1179,9 @@ impl State {
                         )));
                     }
                 });
+            }
+            Message::SetTheme(mode) => {
+                self.theme_mode = mode;
             }
         }
     }
@@ -1207,11 +1212,36 @@ fn App() -> Element {
         }
     }
 
+    use_future(move || async move {
+        let mut current_theme = ThemeMode::Unspecified;
+        loop {
+            match Commands.wait_for_theme_change(current_theme).await {
+                Ok(new_theme) => {
+                    log::info!("OS theme changed to: {new_theme:?}");
+                    dbg!(new_theme);
+                    sender.send(Message::SetTheme(new_theme));
+                    current_theme = new_theme;
+                }
+                Err(err) => {
+                    log::warn!("Theme change listener returned error: {err}");
+                    break;
+                }
+            }
+        }
+    });
+
+    let theme_attr = match state.theme_mode {
+        ThemeMode::Dark => "dark",
+        ThemeMode::Light => "light",
+        ThemeMode::Unspecified => "auto",
+    };
+
     rsx! {
         StyleRef {}
         dialog {
             // TODO: allow clicking on backdrop to close dialog, see: https://stackoverflow.com/questions/25864259/how-to-close-the-new-html-dialog-tag-by-clicking-on-its-backdrop/72916231#72916231
             id: "find-session-data-wizard",
+            "data-theme": "{theme_attr}",
             // TODO: listen to onclose event if that is supported (its not in dioxus v0.5)
             onkeydown: move |evt| {
                 if evt.key() == Key::Escape {
@@ -1255,7 +1285,7 @@ fn App() -> Element {
                 }
             }
         }
-        main { class: "contains-columns",
+        main { class: "contains-columns", "data-theme": "{theme_attr}",
             WindowSelect {
                 open_windows: state.open_window_groups.clone(),
                 closed_windows: state.closed_window_groups.clone(),

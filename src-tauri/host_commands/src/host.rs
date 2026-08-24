@@ -11,7 +11,7 @@ use std::{
 
 use crate::{
     Browser, DataId, FileInfo, FileSlot, FileStatus, FirefoxProfileInfo, FoundSessionFile,
-    OutputFormat, PathId, TabGroup,
+    OutputFormat, PathId, TabGroup, ThemeMode,
 };
 use firefox_session_data::{find, session_store::FirefoxSessionStore, snss};
 use tauri_commands::const_cfg;
@@ -28,6 +28,16 @@ where
         f()
     } else {
         tokio::task::spawn_blocking(f).await.unwrap()
+    }
+}
+
+impl From<dark_light::Mode> for ThemeMode {
+    fn from(mode: dark_light::Mode) -> Self {
+        match mode {
+            dark_light::Mode::Dark => ThemeMode::Dark,
+            dark_light::Mode::Light => ThemeMode::Light,
+            dark_light::Mode::Unspecified => ThemeMode::Unspecified,
+        }
     }
 }
 
@@ -164,6 +174,35 @@ pub struct HostCommands;
 #[cfg_attr(target_family = "wasm", async_trait::async_trait(?Send))]
 #[cfg_attr(not(target_family = "wasm"), async_trait::async_trait)]
 impl super::StatelessCommands for HostCommands {
+    async fn wait_for_theme_change(&self, current_theme: ThemeMode) -> Result<ThemeMode, String> {
+        #[cfg(target_os = "linux")]
+        {
+            use futures_util::StreamExt;
+
+            let mut stream = dark_light::stream().map_err(|e| e.to_string())?;
+
+            {
+                let theme = ThemeMode::from(dark_light::detect().map_err(|e| e.to_string())?);
+                if theme != current_theme {
+                    return Ok(theme);
+                }
+            }
+
+            while let Some(mode) = stream.next().await {
+                let new_theme = ThemeMode::from(mode);
+                if new_theme != current_theme {
+                    return Ok(new_theme);
+                }
+            }
+
+            Err("Theme stream ended unexpectedly".into())
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            Err("Unsupported".to_owned())
+        }
+    }
+
     async fn format_descriptions(&self) -> Vec<(OutputFormat, String)> {
         use firefox_session_data::to_links::ttl_formats::FormatInfo;
         OutputFormat::all()

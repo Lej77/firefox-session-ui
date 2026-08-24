@@ -184,7 +184,8 @@ button {
 }
 
 @media (prefers-color-scheme: dark) {
-    :root {
+    :root:has(main[data-theme="auto"]),
+    [data-theme="auto"] {
         color: #f6f6f6;
         background-color: #2f2f2f;
 
@@ -193,29 +194,70 @@ button {
         color-scheme: dark;
     }
 
-    ::backdrop {
+    [data-theme="auto"] ::backdrop,
+    :root:has([data-theme="auto"]) ::backdrop,
+    ::backdrop[data-theme="auto"] {
         background: rgba(0, 0, 0, 0.3);
     }
-    a:hover {
+    [data-theme="auto"] a:hover {
         color: #24c8db;
     }
 
-    input,
-    .custom-button,
-    button,
-    textarea {
+    [data-theme="auto"] input,
+    [data-theme="auto"] .custom-button,
+    [data-theme="auto"] button,
+    [data-theme="auto"] textarea {
         color: #ffffff;
         background-color: #0f0f0f98;
     }
 
-    .custom-button[disabled=true],
-    button[disabled=true] {
+    [data-theme="auto"] .custom-button[disabled=true],
+    [data-theme="auto"] button[disabled=true] {
         color: hsl(0, 0%, 65%);
         background-color: #0f0f0f98;
     }
 
-    .custom-button:not([disabled]):active,
-    button:not([disabled]):active {
+    [data-theme="auto"] .custom-button:not([disabled]):active,
+    [data-theme="auto"] button:not([disabled]):active {
         background-color: #0f0f0f69;
     }
+}
+
+/* Explicit dark theme: */
+:root:has(main[data-theme="dark"]),
+[data-theme="dark"] {
+    color: #f6f6f6;
+    background-color: #2f2f2f;
+
+    /* Dark scrollbars */
+    /* https://stackoverflow.com/questions/65940522/how-do-i-switch-to-chromes-dark-scrollbar-like-github-does */
+    color-scheme: dark;
+}
+
+[data-theme="dark"] ::backdrop,
+:root:has([data-theme="dark"]) ::backdrop,
+::backdrop[data-theme="dark"] {
+    background: rgba(0, 0, 0, 0.3);
+}
+[data-theme="dark"] a:hover {
+    color: #24c8db;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] .custom-button,
+[data-theme="dark"] button,
+[data-theme="dark"] textarea {
+    color: #ffffff;
+    background-color: #0f0f0f98;
+}
+
+[data-theme="dark"] .custom-button[disabled=true],
+[data-theme="dark"] button[disabled=true] {
+    color: hsl(0, 0%, 65%);
+    background-color: #0f0f0f98;
+}
+
+[data-theme="dark"] .custom-button:not([disabled]):active,
+[data-theme="dark"] button:not([disabled]):active {
+    background-color: #0f0f0f69;
 }
