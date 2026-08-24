@@ -1,4 +1,4 @@
-name: 'Publish new release'
+name: 'release'
 
 on:
   push:
@@ -10,6 +10,9 @@ on:
 # https://github.com/tauri-apps/tauri-action/
 
 jobs:
+  # --------------------------------------------------------------------------
+  # Build & Release Tauri Bundles (macOS, Windows, Linux .deb/AppImage)
+  # --------------------------------------------------------------------------
   publish-tauri:
     permissions:
       contents: write
@@ -44,7 +47,7 @@ jobs:
       # https://crates.io/crates/cargo-binstall/1.12.3#user-content-in-github-actions
       - name: Install cargo-binstall
         uses: cargo-bins/cargo-binstall@main
-  
+
       # https://trunkrs.dev/guide/getting-started/installation.html#using-cargo-binstall
       - name: Install Trunk CLI (using binstall)
         if: matrix.platform != 'macos-latest'
@@ -71,3 +74,52 @@ jobs:
           releaseName: 'App v__VERSION__'
           releaseBody: 'See the assets to download this version and install.'
           args: ${{ matrix.args }}
+
+  # --------------------------------------------------------------------------
+  # Build Flatpak Package (Runs in parallel with publish-tauri)
+  # --------------------------------------------------------------------------
+  build-flatpak:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Flatpak dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop.Sdk.Extension.rust-stable//25.08
+
+      - name: Build Flatpak
+        run: |
+          chmod +x ./flatpak/build-flatpak.sh
+          ./flatpak/build-flatpak.sh
+
+      - name: Upload Flatpak Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-artifact
+          path: ./flatpak/firefox-session-data-utility.flatpak
+          if-no-files-found: error
+
+  # --------------------------------------------------------------------------
+  # Download Flatpak Artifact & Attach to GitHub Release
+  # --------------------------------------------------------------------------
+  publish-flatpak:
+    needs: [publish-tauri, build-flatpak]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download Flatpak Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: flatpak-artifact
+
+      - name: Upload Flatpak to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: firefox-session-data-utility.flatpak
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
