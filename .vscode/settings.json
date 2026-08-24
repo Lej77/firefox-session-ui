@@ -18,5 +18,20 @@
     ],
     "rust-analyzer.linkedProjects": [
         "./Cargo.toml",
-    ]
+    ],
+    "json.schemas": [
+        {
+            "fileMatch": [
+                "**/tauri.conf.json",
+                "**/tauri.conf.json5",
+                "**/tauri.*.conf.json",
+                "**/tauri.*.conf.json5"
+            ],
+            "url": "https://schema.tauri.app/config/2"
+        }
+    ],
+    "evenBetterToml.schema.associations": {
+        "**/Tauri.toml": "https://schema.tauri.app/config/2",
+        "**/Tauri.*.toml": "https://schema.tauri.app/config/2"
+    }
 }

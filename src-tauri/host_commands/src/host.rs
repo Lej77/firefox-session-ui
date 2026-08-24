@@ -31,6 +31,7 @@ where
     }
 }
 
+#[cfg(target_os = "linux")]
 impl From<dark_light::Mode> for ThemeMode {
     fn from(mode: dark_light::Mode) -> Self {
         match mode {
