@@ -21,7 +21,7 @@
 "tools":
     # Default wasm-bindgen version to download.
     # This is the "wasm-bindgen-cli" crate: https://crates.io/crates/wasm-bindgen-cli
-    # When updating this also update the pre-compiled downloads in "flatpak/flatpak-builder.yaml" and the version in "flatpak/build-flatpak.sh"
+    # When updating this also update the pre-compiled downloads in "flatpak/flatpak-builder.yaml" and the version in "flatpak/generate-sources.sh"
     "wasm_bindgen": "0.2.127"
     # Default wasm-opt version to download.
     # Find latest at: https://github.com/WebAssembly/binaryen/releases
