@@ -111,9 +111,7 @@ jobs:
 
       - name: Install flatpak-cargo-generator
         run: |
-          dnf install -y pipx jq curl tar
-          pipx install flatpak-cargo-generator
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          python3 -m pip install --break-system-packages flatpak-cargo-generator
 
       - name: Generate Cargo Sources
         run: |
