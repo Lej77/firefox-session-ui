@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Firefox Session UI
+Comment=Inspect information inside Firefox's session data
+Exec=firefox-session-ui
+Icon=com.lej77.firefox-session-data-utility
+Categories=Utility;
+Terminal=false

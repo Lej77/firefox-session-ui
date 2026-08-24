@@ -1029,7 +1029,7 @@ impl State {
             Message::OpenWizard => {
                 self.wizard = true;
                 spawn(async move {
-                    match Commands.find_firefox_profiles().await {
+                    match Commands.find_all_profiles().await {
                         Ok(profiles) => sender.send(Message::FetchedFirefoxProfiles(profiles)),
                         Err(e) => {
                             sender.send(Message::SetStatus(format!(
@@ -1238,7 +1238,11 @@ fn App() -> Element {
                                 .first()
                                 .map(|v| v.file_path.as_str())
                                 .unwrap_or(profile.file_path.as_str()),
-                            value: profile.session_files.first().map(|v| v.file_path.as_str()).unwrap_or_default(),
+                            value: profile
+                                .session_files
+                                .first()
+                                .map(|v| v.file_path.as_str())
+                                .unwrap_or(profile.file_path.as_str()),
                             "{profile.name}"
                         }
                     }

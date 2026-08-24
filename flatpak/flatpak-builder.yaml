@@ -1,0 +1,245 @@
+id: com.lej77.firefox-session-data-utility
+
+# Explicitly limit manifest build jobs to Tauri's supported Linux architectures
+only-arches:
+  - x86_64
+  - aarch64
+  - riscv64
+  - arm
+  - i386
+
+runtime: org.gnome.Platform
+runtime-version: '50'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+
+command: firefox-session-ui
+finish-args:
+  - --socket=wayland # Permission needed to show the window
+  - --socket=fallback-x11 # Permission needed to show the window on legacy windowing systems
+  # - --device=dri # OpenGL, not necessary for all projects
+  - --share=ipc
+
+  # Native Firefox paths
+  - --filesystem=~/.mozilla:ro
+  - --filesystem=xdg-config/mozilla/firefox:ro
+
+  # Snap Firefox path
+  - --filesystem=~/snap/firefox/common/.mozilla/firefox:ro
+
+  # Flatpak Firefox path (Host ~/.var/app directory)
+  - --filesystem=~/.var/app/org.mozilla.firefox/.mozilla/firefox:ro
+
+  # Chrome, Chromium, and Brave live inside XDG_CONFIG_HOME
+  - --filesystem=xdg-config/google-chrome:ro
+  - --filesystem=xdg-config/chromium:ro
+  - --filesystem=xdg-config/BraveSoftware/Brave-Browser:ro
+
+  # Easy output (no save prompts) by allowing writes to download folder:
+  - --filesystem=xdg-download
+
+# Remove temporary build tools when finished:
+cleanup:
+  - /build-tools
+
+modules:
+  # --------------------------------------------------------------------------
+  # Tool Builder - "cargo-tauri" command
+  # --------------------------------------------------------------------------
+  - name: tauri-cli-builder
+    only-arches: [aarch64, arm, i386]
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
+      env:
+        CARGO_HOME: /run/build/tauri-cli-builder/cargo
+        CARGO_NET_OFFLINE: 'true'
+    sources:
+      # Sources to build tools using cargo install:
+      - cargo-sources-tauri-cli-tool.json
+      - cargo-sources-tauri-cli.json
+    build-commands:
+      - test -f cargo/config && mv cargo/config cargo/config.toml || true
+      - cargo install --offline --locked tauri-cli --root /app/build-tools
+
+  # --------------------------------------------------------------------------
+  # Tool Builder - "trunk" command
+  # --------------------------------------------------------------------------
+  - name: trunk-cli-builder
+    only-arches: [riscv64, arm, i386]
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
+      env:
+        CARGO_HOME: /run/build/trunk-cli-builder/cargo
+        CARGO_NET_OFFLINE: 'true'
+    sources:
+      # Sources to build tools using cargo install:
+      - cargo-sources-trunk-tool.json
+      - cargo-sources-trunk.json
+    build-commands:
+      - test -f cargo/config && mv cargo/config cargo/config.toml || true
+      - cargo install --offline --locked trunk --root /app/build-tools
+
+  # --------------------------------------------------------------------------
+  # Tool Builder - "wasm-bindgen" command
+  # --------------------------------------------------------------------------
+  - name: wasm-bindgen-cli-builder
+    only-arches: [arm, i386]
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
+      env:
+        CARGO_HOME: /run/build/wasm-bindgen-cli-builder/cargo
+        CARGO_NET_OFFLINE: 'true'
+    sources:
+      # Sources to build tools using cargo install:
+      - cargo-sources-wasm-bindgen-cli-tool.json
+      - cargo-sources-wasm-bindgen-cli.json
+    build-commands:
+      - test -f cargo/config && mv cargo/config cargo/config.toml || true
+      - cargo install --offline --locked wasm-bindgen-cli --root /app/build-tools
+
+  # --------------------------------------------------------------------------
+  # Main App Module
+  # --------------------------------------------------------------------------
+  - name: firefox-session-ui
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin:/app/build-tools/bin:/run/build/firefox-session-ui/binaryen/bin
+      env:
+        CARGO_HOME: /run/build/firefox-session-ui/cargo
+        CARGO_NET_OFFLINE: 'true'
+        TRUNK_OFFLINE: 'true'
+        TRUNK_TOOLS_WASM_OPT: 'version_132' # Overrides version specified in Trunk.yaml
+        RUSTFLAGS: '--sysroot /run/build/firefox-session-ui/sysroot'
+    sources:
+      # Use source from GitHub:
+      #- type: git
+      #  url: https://github.com/Lej77/firefox-session-ui.git
+      #  tag: v0.1.1
+
+      # Use source from this machine:
+      - type: dir
+        path: ..
+        skip:
+        - .git
+        - target
+        - dist
+
+      # Pre-compiled tool - Trunk web bundler
+      #   https://trunk-rs.github.io/trunk/guide/getting-started/installation.html
+      #   https://github.com/trunk-rs/trunk/releases
+      - type: archive
+        url: https://github.com/trunk-rs/trunk/releases/download/v0.21.14/trunk-x86_64-unknown-linux-gnu.tar.gz
+        sha256: f2b4680cd239693a646a2795e4633c625328d7b2a044fbe749fa3a2fe9e7036b
+        strip-components: 0
+        only-arches: [x86_64]
+
+      - type: archive
+        url: https://github.com/trunk-rs/trunk/releases/download/v0.21.14/trunk-aarch64-unknown-linux-gnu.tar.gz
+        sha256: b1d8e60e454f7fc182d9a4d95d1506ffbae947d8ba90f8f6f02da93b60f980f9
+        strip-components: 0
+        only-arches: [aarch64]
+
+      # Pre-compiled tool - tauri-cli
+      #  https://v2.tauri.app/reference/cli/
+      #  https://github.com/tauri-apps/tauri/releases?q=cli&expanded=false
+      - type: archive
+        url: https://github.com/tauri-apps/tauri/releases/download/tauri-cli-v2.11.4/cargo-tauri-x86_64-unknown-linux-gnu.tgz
+        sha256: 6864602a34292aa6f2ad40ae019eebe5c1064d6c623fe20696a8a8974067e60b
+        strip-components: 0
+        only-arches: [x86_64]
+
+      - type: archive
+        url: https://github.com/tauri-apps/tauri/releases/download/tauri-cli-v2.11.4/cargo-tauri-riscv64gc-unknown-linux-gnu.tgz
+        sha256: 3401d57ec3c0688fad0c1426425fbb90757372a5950f6061bfb7b8550b2afe40
+        strip-components: 0
+        only-arches: [riscv64]
+
+      # Pre-compiled tool - wasm-bindgen
+      #  https://github.com/wasm-bindgen/wasm-bindgen/releases
+      - type: archive
+        url: https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.127/wasm-bindgen-0.2.127-x86_64-unknown-linux-musl.tar.gz
+        sha256: 61d4a7dc85acfa0d2354ccc0b8361928c7e52a746d17f28ebaa795ed3dc1614a
+        strip-components: 1
+        only-arches: [x86_64]
+        dest: wasm-bindgen-artifacts
+
+      - type: archive
+        url: https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.127/wasm-bindgen-0.2.127-aarch64-unknown-linux-gnu.tar.gz
+        sha256: 1ce0ebd74e378d989651091f93c917bd7700996945d4c5ce37ec9507f149225c
+        strip-components: 1
+        only-arches: [aarch64]
+        dest: wasm-bindgen-artifacts
+
+      - type: archive
+        url: https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.127/wasm-bindgen-0.2.127-riscv64gc-unknown-linux-gnu.tar.gz
+        sha256: 507f8fbd34a7b19f3bc1b66625cbf13203061b6d11d240d13cfe364121965af4
+        strip-components: 1
+        only-arches: [riscv64]
+        dest: wasm-bindgen-artifacts
+
+      # Pre-compiled tool - wasm_opt
+      #  https://github.com/WebAssembly/binaryen/releases
+      - type: archive
+        url: https://github.com/WebAssembly/binaryen/releases/download/version_132/binaryen-version_132-x86_64-linux.tar.gz
+        sha256: 195ddc94f9bc89f45abdabb0b9eea86023d727ba90eac8b35b80f2544fc30572
+        strip-components: 1
+        only-arches: [x86_64]
+        dest: binaryen
+
+      - type: archive
+        url: https://github.com/WebAssembly/binaryen/releases/download/version_132/binaryen-version_132-aarch64-linux.tar.gz
+        sha256: c58562417836c5d0493d89bdefc434933bdc097db641b483df86bcfa557a107f
+        strip-components: 1
+        only-arches: [aarch64]
+        dest: binaryen
+
+      # Rust wasm32-unknown-unknown std library
+      - type: file
+        url: https://static.rust-lang.org/dist/rust-std-1.98.0-wasm32-unknown-unknown.tar.gz
+        sha256: d2443b4da8d168f152875416ab204fea42f2ed7d9dcce92725d579722e0bdaa5
+
+      # Sources to build project:
+      - cargo-sources-project.json
+    build-commands:
+      # Create sysroot directory structure cleanly
+      - mkdir -p /run/build/firefox-session-ui/sysroot
+      - cp -a /usr/lib/sdk/rust-stable/. /run/build/firefox-session-ui/sysroot/
+
+      # Extract WASM stdlib into sysroot rustlib folder
+      - mkdir -p /run/build/firefox-session-ui/sysroot/lib/rustlib
+      - tar -xf rust-std-1.98.0-wasm32-unknown-unknown.tar.gz -C /run/build/firefox-session-ui/sysroot/lib/rustlib --strip-components=4 rust-std-1.98.0-wasm32-unknown-unknown/rust-std-wasm32-unknown-unknown/lib/rustlib/wasm32-unknown-unknown
+
+      # Ensure /app/build-tools/bin exists and contains the tools
+      - mkdir -p /app/build-tools/bin
+      - test -f trunk && mv trunk /app/build-tools/bin/ || true
+      - test -f cargo-tauri && mv cargo-tauri /app/build-tools/bin/ || true
+      - cp wasm-bindgen-artifacts/wasm-bindgen /app/build-tools/bin/
+
+      # Symlink/move cargo/config to config.toml to fix deprecation warning
+      - test -f cargo/config && mv cargo/config cargo/config.toml || true
+
+      # Disable wasm-opt in HTML configs if binaryen directory is missing
+      - |
+        if [ ! -d "binaryen" ]; then
+          sed -ri 's/data-wasm-opt="[0-4sSzZ]"/data-wasm-opt="0"/g' trunk.html index.html 2>/dev/null || true
+        fi
+
+      # Build directly - Cargo will automatically use $CARGO_HOME/config
+      - cargo-tauri build --config src-tauri/tauri.conf.json5 --bundles deb
+
+      # Collect info as suggested by: https://v2.tauri.app/distribute/flatpak/
+      # Install binary to /app/bin
+      - install -Dm755 "target/release/Firefox Session Data Utility" /app/bin/firefox-session-ui
+
+      # Install desktop icon assets from src-tauri/icons/
+      - install -Dm644 src-tauri/icons/32x32.png /app/share/icons/hicolor/32x32/apps/com.lej77.firefox-session-data-utility.png
+      - install -Dm644 src-tauri/icons/128x128.png /app/share/icons/hicolor/128x128/apps/com.lej77.firefox-session-data-utility.png
+      - install -Dm644 src-tauri/icons/128x128@2x.png /app/share/icons/hicolor/256x256/apps/com.lej77.firefox-session-data-utility.png
+
+      # Install Desktop File and AppData Metainfo
+      - install -Dm644 flatpak/com.lej77.firefox-session-data-utility.desktop /app/share/applications/com.lej77.firefox-session-data-utility.desktop
+      - install -Dm644 src-tauri/com.lej77.firefox-session-data-utility.metainfo.xml /app/share/metainfo/com.lej77.firefox-session-data-utility.metainfo.xml

@@ -10,10 +10,10 @@ use std::{
 };
 
 use crate::{
-    DataId, FileInfo, FileSlot, FileStatus, FirefoxProfileInfo, FoundSessionFile, OutputFormat,
-    PathId, TabGroup,
+    Browser, DataId, FileInfo, FileSlot, FileStatus, FirefoxProfileInfo, FoundSessionFile,
+    OutputFormat, PathId, TabGroup,
 };
-use firefox_session_data::session_store::FirefoxSessionStore;
+use firefox_session_data::{find, session_store::FirefoxSessionStore, snss};
 use tauri_commands::const_cfg;
 
 /// A version of [`tokio::task::spawn_blocking`] that works for the WebAssembly
@@ -31,14 +31,29 @@ where
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum FileData {
+    Chromium(Arc<snss::SessionStore>),
+    Compressed(Arc<[u8]>),
+    Uncompressed(Arc<[u8]>),
+    Parsed(Arc<FirefoxSessionStore>),
+}
+impl FileData {
+    pub fn as_parsed(&self) -> Option<&Arc<FirefoxSessionStore>> {
+        if let Self::Parsed(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct FileState {
     pub path_id: PathId,
     pub data_id: DataId,
     pub file_path: Option<PathBuf>,
-    pub is_compressed: bool,
-    pub data: Option<Arc<[u8]>>,
-    pub session: Option<Arc<FirefoxSessionStore>>,
+    pub data: Option<FileData>,
 }
 impl FileState {
     pub fn to_info(&self) -> FileInfo {
@@ -49,18 +64,13 @@ impl FileState {
                 .map(|p| p.to_string_lossy().into_owned()),
             path_id: self.path_id,
             data_id: self.data_id,
-            status: if self.session.is_some() {
-                FileStatus::Parsed
-            } else if self.data.is_some() {
-                if self.is_compressed {
-                    FileStatus::Compressed
-                } else {
-                    FileStatus::Uncompressed
-                }
-            } else if self.file_path.is_some() {
-                FileStatus::Found
-            } else {
-                FileStatus::Empty
+            status: match self.data {
+                None if self.file_path.is_some() => FileStatus::Found,
+                None => FileStatus::Empty,
+                Some(FileData::Chromium { .. }) => FileStatus::Uncompressed,
+                Some(FileData::Compressed { .. }) => FileStatus::Compressed,
+                Some(FileData::Uncompressed { .. }) => FileStatus::Uncompressed,
+                Some(FileData::Parsed { .. }) => FileStatus::Parsed,
             },
         }
     }
@@ -71,9 +81,7 @@ impl Default for FileState {
             path_id: PathId::null(),
             data_id: DataId::null(),
             file_path: None,
-            is_compressed: true,
             data: None,
-            session: None,
         }
     }
 }
@@ -83,7 +91,8 @@ pub struct UiState {
     pub new_file: FileState,
     pub save_path: Option<PathBuf>,
     #[cfg(target_family = "wasm")]
-    pub handle_saved_data: Box<dyn FnMut(Vec<u8>, &'static str) -> Result<(), String> + Send + 'static>,
+    pub handle_saved_data:
+        Box<dyn FnMut(Vec<u8>, &'static str) -> Result<(), String> + Send + 'static>,
 }
 impl std::fmt::Debug for UiState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -100,10 +109,10 @@ impl Default for UiState {
             current_file: Default::default(),
             new_file: Default::default(),
             // TODO: more robust finding of downloads folder.
-            save_path: std::env::var("USERPROFILE")
-                .map(|home| home + r"\Downloads\firefox-links")
-                .map(Into::into)
-                .ok(),
+            save_path: cfg!(any(windows, target_os = "linux"))
+                .then(std::env::home_dir)
+                .flatten()
+                .map(|home| home.join("Downloads/firefox-links")),
             #[cfg(target_family = "wasm")]
             handle_saved_data: Box::new(|_, _| Ok(())),
         }
@@ -162,6 +171,45 @@ impl super::StatelessCommands for HostCommands {
             .map(|&f| (f, FormatInfo::from(f).to_string()))
             .collect()
     }
+
+    async fn find_chromium_profiles(&self) -> Result<Vec<FirefoxProfileInfo>, String> {
+        let search_locations = [
+            (Browser::Chromium, find::chromium_profile_dir()),
+            (Browser::Brave, find::brave_profile_dir()),
+            (Browser::Chrome, find::chrome_profile_dir()),
+        ];
+        Ok(search_locations
+            .into_iter()
+            .filter_map(|(name, result)| Some((name, result.ok()?)))
+            .flat_map(|(browser, profiles_dir)| {
+                (0..)
+                    .map(move |index| {
+                        if index == 0 {
+                            profiles_dir.join("Default")
+                        } else {
+                            profiles_dir.join(format!("Profile {index}"))
+                        }
+                    })
+                    .take_while(|path| path.exists())
+                    .filter_map(move |profile_path| {
+                        Some(FirefoxProfileInfo {
+                            name: {
+                                let folder_name = profile_path.file_name()?.to_str()?.to_owned();
+                                format!("{browser:?} - {folder_name}")
+                            },
+                            file_path: profile_path.to_str()?.to_owned(),
+                            modified_at: profile_path
+                                .metadata()
+                                .and_then(|meta| meta.modified())
+                                .ok()
+                                .map(|time| time.duration_since(UNIX_EPOCH).unwrap().as_secs()),
+                            session_files: Vec::new(),
+                            browser,
+                        })
+                    })
+            })
+            .collect())
+    }
     async fn find_firefox_profiles(&self) -> Result<Vec<FirefoxProfileInfo>, String> {
         let finder = ::firefox_session_data::find::FirefoxProfileFinder::new()
             .map_err(|e| format!("{e}"))?;
@@ -212,9 +260,18 @@ impl super::StatelessCommands for HostCommands {
                         .ok()
                         .map(|time| time.duration_since(UNIX_EPOCH).unwrap().as_secs()),
                     session_files,
+                    browser: Browser::Firefox,
                 })
             })
             .collect())
+    }
+
+    async fn find_all_profiles(&self) -> Result<Vec<FirefoxProfileInfo>, String> {
+        Ok([
+            self.find_firefox_profiles().await?,
+            self.find_chromium_profiles().await?,
+        ]
+        .concat())
     }
 }
 
@@ -446,11 +503,13 @@ impl super::FileManagementCommands for HostCommands {
 
         *file_info = FileState {
             file_path: file_info.file_path.clone(),
-            is_compressed,
-            data: Some(data.into()),
+            data: Some(if is_compressed {
+                FileData::Compressed(data.into())
+            } else {
+                FileData::Uncompressed(data.into())
+            }),
             data_id: DataId::new(),
             path_id: id,
-            session: None,
         };
         Ok(file_info.data_id)
     }
@@ -471,8 +530,14 @@ impl super::FileManagementCommands for HostCommands {
                 .ok_or("file hasn't been selected yet")?
                 .clone()
         };
+        let data = spawn_blocking(move || -> Result<_, String> {
+            if path.is_dir() {
+                return Ok(FileData::Chromium(Arc::new(
+                    snss::SessionStore::open_dir(&path.join("Sessions"))
+                        .map_err(|e| e.to_string())?,
+                )));
+            }
 
-        let (is_compressed, data) = spawn_blocking(move || -> Result<_, String> {
             let file = File::open(&path)
                 .map_err(|e| format!("failed to open file at {}: {e}", path.display()))?;
 
@@ -488,7 +553,11 @@ impl super::FileManagementCommands for HostCommands {
                 .and_then(|ext| ext.to_str().map(|v| v.ends_with("lz4")))
                 .unwrap_or(false);
 
-            Ok((is_compressed, data))
+            Ok(if is_compressed {
+                FileData::Compressed(data.into())
+            } else {
+                FileData::Uncompressed(data.into())
+            })
         })
         .await?;
 
@@ -499,11 +568,9 @@ impl super::FileManagementCommands for HostCommands {
 
         *file_info = FileState {
             file_path: file_info.file_path.clone(),
-            is_compressed,
-            data: Some(data.into()),
+            data: Some(data),
             data_id: DataId::new(),
             path_id: id,
-            session: None,
         };
         Ok(file_info.data_id)
     }
@@ -519,9 +586,9 @@ impl super::FileManagementCommands for HostCommands {
 
             let data = host_data.data.clone().ok_or("file data not loaded")?;
 
-            if !host_data.is_compressed {
-                return Err("the data was already uncompressed".to_string());
-            }
+            let FileData::Compressed(data) = data else {
+                return Ok(());
+            };
             data
         };
         let decompressed = spawn_blocking(move || {
@@ -540,8 +607,7 @@ impl super::FileManagementCommands for HostCommands {
         let host_data = guard
             .get_file_for_data_id(id)
             .ok_or("file id expired while decompressing")?;
-        host_data.data = Some(decompressed.into());
-        host_data.is_compressed = false;
+        host_data.data = Some(FileData::Uncompressed(decompressed.into()));
         Ok(())
     }
 
@@ -557,10 +623,13 @@ impl super::FileManagementCommands for HostCommands {
 
             let data = host_data.data.clone().ok_or("file data not loaded")?;
 
-            if host_data.is_compressed {
-                return Err("can't parse compressed data".to_string());
+            match data {
+                FileData::Uncompressed(data) => data,
+                FileData::Compressed { .. } => {
+                    return Err("can't parse compressed data".to_string())
+                }
+                FileData::Chromium(..) | FileData::Parsed(..) => return Ok(()),
             }
-            data
         };
 
         let session = spawn_blocking(move || {
@@ -573,8 +642,7 @@ impl super::FileManagementCommands for HostCommands {
         let host_data = guard
             .get_file_for_data_id(id)
             .ok_or("file id expired while parsing JSON")?;
-        host_data.session = Some(Arc::new(session));
-        host_data.data = None; // <- Free memory
+        host_data.data = Some(FileData::Parsed(Arc::new(session)));
 
         Ok(())
     }
@@ -587,14 +655,38 @@ impl super::FileManagementCommands for HostCommands {
     ) -> Result<crate::AllTabGroups, String> {
         use firefox_session_data::session_store::session_info::get_groups_from_session;
 
-        let session = state
+        let data = state
             .lock()
             .unwrap()
             .get_file_for_data_id(id)
             .ok_or("file id has expired")?
-            .session
-            .clone()
-            .ok_or("must deserialize JSON sessionstore data before tab groups can be inspected")?;
+            .data
+            .clone();
+
+        if let Some(FileData::Chromium(session)) = &data {
+            let latest = session
+                .sources()
+                .iter()
+                .find(|source| source.kind == snss::SourceKind::Last)
+                .ok_or("Could not find latest Chromium session file")?;
+            return Ok(crate::AllTabGroups {
+                open: latest
+                    .windows
+                    .iter()
+                    .enumerate()
+                    .map(|(index, _window)| TabGroup {
+                        index: index as u32,
+                        name: format!("Window {}", index + 1),
+                    })
+                    .collect(),
+                closed: Vec::new(),
+            });
+        }
+
+        let session =
+            data.as_ref().and_then(FileData::as_parsed).cloned().ok_or(
+                "must deserialize JSON sessionstore data before tab groups can be inspected",
+            )?;
 
         Ok(spawn_blocking(move || crate::AllTabGroups {
             open: get_groups_from_session(&session, true, false, sort_groups)
@@ -630,13 +722,74 @@ impl super::FileManagementCommands for HostCommands {
             to_links::TabsToLinksOutput,
         };
 
-        let session = state
+        let options = TabsToLinksOutput {
+            format: LinkFormat::TXT,
+            as_pdf: None,
+            conversion_options: ToLinksOptions {
+                format: LinkFormat::TXT,
+                page_breaks_after_group: false, // We don't have any page break character in raw text
+                skip_page_break_after_last_group: true,
+                table_of_contents: generate_options.table_of_content,
+                indent_all_links: true,
+                custom_page_break: "".into(),
+                // If there is any data from Sidebery then TST data
+                // won't be used and so on:
+                tree_sources: Cow::Borrowed(&[
+                    TreeDataSource::Sidebery,
+                    TreeDataSource::TstWebExtension,
+                    TreeDataSource::TstLegacy,
+                ]),
+            },
+        };
+
+        let data = state
             .lock()
             .unwrap()
             .get_file_for_data_id(id)
             .ok_or("file id has expired")?
-            .session
-            .clone()
+            .data
+            .clone();
+
+        if let Some(FileData::Chromium(session)) = data {
+            return spawn_blocking(move || {
+                let latest = session
+                    .sources()
+                    .iter()
+                    .find(|source| source.kind == snss::SourceKind::Last)
+                    .ok_or("Could not find latest Chromium session file")?;
+
+                let mut output: Vec<u8> = Vec::new();
+
+                firefox_session_data::tabs_to_links(
+                    &latest
+                        .windows
+                        .iter()
+                        .enumerate()
+                        .filter(|(index, _window)| {
+                            if let Some(indexes) = &generate_options.open_group_indexes {
+                                indexes.contains(&(*index as u32))
+                            } else {
+                                true
+                            }
+                        })
+                        .map(|(index, window)| {
+                            firefox_session_data::snss_to_links::SnssWindow::new(window, index)
+                        })
+                        .collect::<Vec<_>>(),
+                    options,
+                    WriteBuilderSimple(&mut output),
+                )
+                .map_err(|e| e.to_string())?;
+
+                Ok(String::from_utf8_lossy(&output).into_owned())
+            })
+            .await;
+        }
+
+        let session = data
+            .as_ref()
+            .and_then(FileData::as_parsed)
+            .cloned()
             .ok_or("must deserialize JSON sessionstore data before converting tabs to links")?;
 
         spawn_blocking(move || {
@@ -668,25 +821,7 @@ impl super::FileManagementCommands for HostCommands {
 
             firefox_session_data::tabs_to_links(
                 &open_groups.chain(closed_groups).collect::<Vec<_>>(),
-                TabsToLinksOutput {
-                    format: LinkFormat::TXT,
-                    as_pdf: None,
-                    conversion_options: ToLinksOptions {
-                        format: LinkFormat::TXT,
-                        page_breaks_after_group: false,
-                        skip_page_break_after_last_group: true,
-                        table_of_contents: generate_options.table_of_content,
-                        indent_all_links: true,
-                        custom_page_break: "".into(),
-                        // If there is any data from Sidebery then TST data
-                        // won't be used and so on:
-                        tree_sources: Cow::Borrowed(&[
-                            TreeDataSource::Sidebery,
-                            TreeDataSource::TstWebExtension,
-                            TreeDataSource::TstLegacy,
-                        ]),
-                    },
-                },
+                options,
                 WriteBuilderSimple(&mut output),
             )
             .map_err(|e| e.to_string())?;
@@ -721,7 +856,7 @@ impl super::FileManagementCommands for HostCommands {
             to_links::{ttl_formats::FormatInfo, TabsToLinksOutput},
         };
 
-        let (mut save_path, session) = {
+        let (mut save_path, data) = {
             let mut guard = state.lock().unwrap();
             let save_path = if cfg!(target_family = "wasm") {
                 Default::default()
@@ -731,11 +866,19 @@ impl super::FileManagementCommands for HostCommands {
             let file = guard
                 .get_file_for_data_id(id)
                 .ok_or("file id has expired")?;
-            let session = file
-                .session
-                .clone()
-                .ok_or("must deserialize JSON sessionstore data before converting tabs to links")?;
-            (save_path, session)
+
+            let data = match &file.data {
+                Some(data @ FileData::Chromium { .. } | data @ FileData::Parsed { .. }) => {
+                    data.clone()
+                }
+                Some(FileData::Compressed { .. } | FileData::Uncompressed { .. }) | None => {
+                    return Err(
+                        "must deserialize JSON sessionstore data before converting tabs to links"
+                            .to_owned(),
+                    );
+                }
+            };
+            (save_path, data)
         };
 
         let _data = spawn_blocking(move || -> Result<_, String> {
@@ -788,32 +931,8 @@ impl super::FileManagementCommands for HostCommands {
                         })?
                 }
             };
-
-            let open_groups =
-                get_groups_from_session(&session, true, false, generate_options.sort_groups)
-                    .enumerate()
-                    .filter(|(ix, _)| {
-                        if let Some(indexes) = &generate_options.open_group_indexes {
-                            indexes.contains(&(*ix as u32))
-                        } else {
-                            true
-                        }
-                    })
-                    .map(|(_, g)| g);
-
-            let closed_groups =
-                get_groups_from_session(&session, false, true, generate_options.sort_groups)
-                    .enumerate()
-                    .filter(|(ix, _)| {
-                        if let Some(indexes) = &generate_options.closed_group_indexes {
-                            indexes.contains(&(*ix as u32))
-                        } else {
-                            true
-                        }
-                    })
-                    .map(|(_, g)| g);
-
             let page_breaks = !matches!(format, LinkFormat::TXT);
+
             let mut tree_sources = Vec::with_capacity(3);
             if generate_options.sidebery_trees {
                 // Prefer first found source, so if there is any data from
@@ -826,27 +945,86 @@ impl super::FileManagementCommands for HostCommands {
                     TreeDataSource::TstLegacy,
                 ]);
             }
-
-            firefox_session_data::tabs_to_links(
-                &open_groups.chain(closed_groups).collect::<Vec<_>>(),
-                TabsToLinksOutput {
+            let options = TabsToLinksOutput {
+                format,
+                as_pdf,
+                conversion_options: ToLinksOptions {
                     format,
-                    as_pdf,
-                    conversion_options: ToLinksOptions {
-                        format,
-                        // No page break character for text files so fallback to
-                        // several new lines:
-                        page_breaks_after_group: page_breaks,
-                        skip_page_break_after_last_group: page_breaks && (format.is_html() || format.is_typst()),
-                        table_of_contents: generate_options.table_of_content,
-                        indent_all_links: true,
-                        custom_page_break: "".into(),
-                        tree_sources: Cow::Owned(tree_sources),
-                    },
+                    // No page break character for text files so fallback to
+                    // several new lines:
+                    page_breaks_after_group: page_breaks,
+                    skip_page_break_after_last_group: page_breaks
+                        && (format.is_html() || format.is_typst()),
+                    table_of_contents: generate_options.table_of_content,
+                    indent_all_links: true,
+                    custom_page_break: "".into(),
+                    tree_sources: Cow::Owned(tree_sources),
                 },
-                WriteBuilderSimple(&mut file),
-            )
-            .map_err(|e| e.to_string())?;
+            };
+
+            match &data {
+                FileData::Parsed(session) => {
+                    let open_groups =
+                        get_groups_from_session(session, true, false, generate_options.sort_groups)
+                            .enumerate()
+                            .filter(|(ix, _)| {
+                                if let Some(indexes) = &generate_options.open_group_indexes {
+                                    indexes.contains(&(*ix as u32))
+                                } else {
+                                    true
+                                }
+                            })
+                            .map(|(_, g)| g);
+
+                    let closed_groups =
+                        get_groups_from_session(session, false, true, generate_options.sort_groups)
+                            .enumerate()
+                            .filter(|(ix, _)| {
+                                if let Some(indexes) = &generate_options.closed_group_indexes {
+                                    indexes.contains(&(*ix as u32))
+                                } else {
+                                    true
+                                }
+                            })
+                            .map(|(_, g)| g);
+
+                    firefox_session_data::tabs_to_links(
+                        &open_groups.chain(closed_groups).collect::<Vec<_>>(),
+                        options,
+                        WriteBuilderSimple(&mut file),
+                    )
+                    .map_err(|e| e.to_string())?;
+                }
+                FileData::Chromium(session) => {
+                    let latest = session
+                        .sources()
+                        .iter()
+                        .find(|source| source.kind == snss::SourceKind::Last)
+                        .ok_or("Could not find latest Chromium session file")?;
+
+                    firefox_session_data::tabs_to_links(
+                        &latest
+                            .windows
+                            .iter()
+                            .enumerate()
+                            .filter(|(index, _window)| {
+                                if let Some(indexes) = &generate_options.open_group_indexes {
+                                    indexes.contains(&(*index as u32))
+                                } else {
+                                    true
+                                }
+                            })
+                            .map(|(index, window)| {
+                                firefox_session_data::snss_to_links::SnssWindow::new(window, index)
+                            })
+                            .collect::<Vec<_>>(),
+                        options,
+                        WriteBuilderSimple(&mut file),
+                    )
+                    .map_err(|e| e.to_string())?;
+                }
+                _ => unreachable!(),
+            };
 
             #[cfg(target_family = "wasm")]
             {

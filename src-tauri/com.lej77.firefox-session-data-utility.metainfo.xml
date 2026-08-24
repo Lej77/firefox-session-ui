@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+    <id>com.lej77.firefox-session-data-utility</id>
+    <launchable type="desktop-id">com.lej77.firefox-session-data-utility.desktop</launchable>
+    <name>Firefox Session Data Utility</name>
+    <developer id="io.github.lej77">
+        <name>Lej77</name>
+    </developer>
+    <content_rating type="oars-1.1">
+    </content_rating>
+    <keywords>
+        <keyword>Utility</keyword>
+        <keyword>Firefox</keyword>
+    </keywords>
+    <branding>
+        <color type="primary" scheme_preference="light">#00ffff</color>
+        <color type="primary" scheme_preference="dark">#0c9aff</color>
+    </branding>
+    <recommends>
+        <display_length compare="ge">360</display_length>
+    </recommends>
+    <summary>Inspect information inside Firefox's session data</summary>
+
+    <metadata_license>MIT</metadata_license>
+    <project_license>MIT</project_license>
+    <url type="homepage">https://github.com/Lej77/firefox-session-ui</url>
+
+    <supports>
+        <control>pointing</control>
+        <control>keyboard</control>
+        <control>touch</control>
+    </supports>
+
+    <description>
+        <p>
+            This program inspect information inside Firefox's session data and allows saving a list of links representing all open tabs.
+        </p>
+    </description>
+    <screenshots>
+    </screenshots>
+    <releases>
+    </releases>
+
+</component>

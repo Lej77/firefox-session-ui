@@ -1,9 +1,11 @@
 [package]
 name = "firefox-session-ui"
-version = "0.1.0"
-authors = ["Lej77 <31554212+Lej77@users.noreply.github.com>"]
-edition = "2021"
-license = "MIT OR Apache-2.0" # Some optional features of the firefox-session-data library might have more restrictive licenses
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -77,3 +79,16 @@ inherits = "dev"
 
 [profile.android-dev]
 inherits = "dev"
+
+[workspace]
+resolver = "3"
+members = ["src-tauri", "src-tauri/host_commands"]
+
+# https://doc.rust-lang.org/cargo/reference/workspaces.html#the-package-table
+[workspace.package]
+version = "0.1.1" # When updating version also update git tag in "flatpak/flatpak-builder.yaml"
+authors = ["Lej77 <31554212+Lej77@users.noreply.github.com>"]
+edition = "2021"
+license = "MIT OR Apache-2.0" # Some optional features of the firefox-session-data library might have more restrictive licenses
+repository = "https://github.com/Lej77/firefox-session-ui"
+description = "Inspect information inside Firefox's session data"

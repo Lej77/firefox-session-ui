@@ -187,20 +187,21 @@ declare_formats!(
 
 #[TauriSerialize]
 #[TauriDeserialize]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct OutputOptions {
     pub format: OutputFormat,
     pub overwrite: bool,
     pub create_folder: bool,
 }
-impl Default for OutputOptions {
-    fn default() -> Self {
-        Self {
-            format: Default::default(),
-            overwrite: false,
-            create_folder: false,
-        }
-    }
+
+#[TauriSerialize]
+#[TauriDeserialize]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Browser {
+    Firefox,
+    Chrome,
+    Chromium,
+    Brave,
 }
 
 #[TauriSerialize]
@@ -211,6 +212,7 @@ pub struct FirefoxProfileInfo {
     pub file_path: String,
     pub modified_at: Option<u64>,
     pub session_files: Vec<FoundSessionFile>,
+    pub browser: Browser,
 }
 
 #[TauriSerialize]
@@ -231,7 +233,9 @@ pub trait StatelessCommands {
     /// Get descriptions for all output formats.
     async fn format_descriptions(&self) -> Vec<(OutputFormat, String)>;
 
+    async fn find_chromium_profiles(&self) -> Result<Vec<FirefoxProfileInfo>, String>;
     async fn find_firefox_profiles(&self) -> Result<Vec<FirefoxProfileInfo>, String>;
+    async fn find_all_profiles(&self) -> Result<Vec<FirefoxProfileInfo>, String>;
 }
 
 #[tauri_commands::tauri_commands(wasm_client_impl_for = WasmClient)]

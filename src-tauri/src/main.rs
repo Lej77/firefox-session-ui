@@ -128,7 +128,9 @@ mod commands {
     #[async_trait]
     impl StatelessCommands for TauriCommands {
         async fn format_descriptions(&self) -> Vec<(OutputFormat, String)> {}
+        async fn find_chromium_profiles(&self) -> Result<Vec<FirefoxProfileInfo>, String> {}
         async fn find_firefox_profiles(&self) -> Result<Vec<FirefoxProfileInfo>, String> {}
+        async fn find_all_profiles(&self) -> Result<Vec<FirefoxProfileInfo>, String> {}
     }
 }
 

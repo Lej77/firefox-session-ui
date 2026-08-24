@@ -1,16 +1,16 @@
 [package]
 name = "firefox-session-ui-tauri"
-version = "0.1.0"
-description = "A Tauri App"
-authors = ["Lej77 <31554212+Lej77@users.noreply.github.com>"]
-license = "MIT OR Apache-2.0" # Some optional features of the firefox-session-data library might have more restrictive licenses
-repository = ""
-edition = "2021"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "2", features = ["config-json5"] }
 
 [dependencies]
 tauri = { version = "2", features = [

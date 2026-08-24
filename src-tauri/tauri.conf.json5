@@ -25,6 +25,18 @@
         "type": "embedBootstrapper"
       }
     },
+    "linux": {
+      "deb": {
+        "files": {
+          "/usr/share/metainfo/com.lej77.firefox-session-data-utility.metainfo.xml": "com.lej77.firefox-session-data-utility.metainfo.xml"
+        }
+      },
+      "rpm": {
+        "files": {
+          "/usr/share/metainfo/com.lej77.firefox-session-data-utility.metainfo.xml": "com.lej77.firefox-session-data-utility.metainfo.xml"
+        }
+      }
+    },
     "targets": "all",
     "category": "Utility",
     "shortDescription": "Inspect information inside Firefox's session data"

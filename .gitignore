@@ -6,10 +6,17 @@
 **/*.rs.bk
 
 # Used by cargo-run-bin
-.bin/
+/.bin/
 
-# Local notes
+# Local temporary notes
 todo.md
 
 # Generated Trunk JSON Schema
 .Trunk.schema.json
+
+# Generated when building flatpak
+/flatpak/.flatpak-builder
+/flatpak/cargo-sources-*.json
+/flatpak/flatpak
+/.flatpak-builder
+/flatpak/**/*Cargo.lock
