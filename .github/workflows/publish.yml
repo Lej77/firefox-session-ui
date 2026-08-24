@@ -79,13 +79,17 @@ jobs:
   # Build Flatpak Package (Runs in parallel with publish-tauri)
   # --------------------------------------------------------------------------
   build-flatpak:
-    name: "Flatpak (${{ matrix.arch }})"
-    runs-on: ubuntu-latest
-
+    name: "Flatpak (${{ matrix.variant.arch }})"
     strategy:
       fail-fast: false
       matrix:
-        arch: [x86_64, aarch64]
+        variant:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+
+    runs-on: ${{ matrix.variant.runner }}
 
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
@@ -94,20 +98,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Install Docker CLI for QEMU Setup
-        if: ${{ matrix.arch != 'x86_64' }}
-        run: |
-          curl https://download.docker.com/linux/static/stable/x86_64/docker-26.0.0.tgz --output ./docker.tgz
-          tar xzvf docker.tgz
-          mv docker/* /usr/bin
-
-      - name: Set up QEMU
-        if: ${{ matrix.arch != 'x86_64' }}
-        id: qemu
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
 
       - name: Install flatpak-cargo-generator
         run: |
@@ -123,7 +113,7 @@ jobs:
         with:
           manifest-path: flatpak/flatpak-builder.yaml
           bundle: firefox-session-data-utility.flatpak
-          arch: ${{ matrix.arch }}
+          arch: ${{ matrix.variant.arch }}
           upload-artifact: true
           cache-key: flatpak-builder-${{ github.sha }}
 
