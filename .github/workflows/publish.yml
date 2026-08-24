@@ -86,7 +86,13 @@ jobs:
       - name: Install Flatpak dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder
+          sudo apt-get install -y flatpak flatpak-builder pipx
+
+          # Install flatpak-cargo-generator via pipx
+          pipx install flatpak-cargo-generator
+
+          # Ensure pipx binaries are available in PATH for subsequent commands
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install -y org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop.Sdk.Extension.rust-stable//25.08
