@@ -359,7 +359,7 @@ fn WindowSelect(props: WindowSelectProps) -> Element {
                 log::debug!("multi select event: {evt:?}");
                 let (values_wasm, values_desktop);
                 let values = if cfg!(target_family = "wasm") {
-                    values_wasm = evt.get("options");
+                    values_wasm = evt.get("windows");
                     values_wasm
                         .iter()
                         .filter_map(|form_value| {
