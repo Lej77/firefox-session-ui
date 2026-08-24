@@ -86,7 +86,7 @@ members = ["src-tauri", "src-tauri/host_commands"]
 
 # https://doc.rust-lang.org/cargo/reference/workspaces.html#the-package-table
 [workspace.package]
-version = "0.1.1" # When updating version also update git tag in "flatpak/flatpak-builder.yaml"
+version = "0.1.1" # When updating version also update git tag in "flatpak/flatpak-builder.yaml" and version in "src-tauri/tauri.conf.json5"
 authors = ["Lej77 <31554212+Lej77@users.noreply.github.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0" # Some optional features of the firefox-session-data library might have more restrictive licenses

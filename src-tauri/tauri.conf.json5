@@ -43,7 +43,7 @@
   },
   "productName": "Firefox Session Data Utility",
   "mainBinaryName": "Firefox Session Data Utility",
-  "version": "0.1.0",
+  "version": "0.1.1", // sync with version in Cargo.toml
   "identifier": "com.lej77.firefox-session-data-utility",
   "plugins": {},
   "app": {
